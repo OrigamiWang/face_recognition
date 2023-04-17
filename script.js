@@ -31,7 +31,7 @@ async function get_image_list(img_name) {
 }
 
 async function get_data_from_minio() {
-    await fetch('http://43.139.5.93:5001/data')
+    await fetch('https://faceapi.origami.wang/data')
         .then(response => response.text())
         .then(data => data.split(','))
         .then(res => {
