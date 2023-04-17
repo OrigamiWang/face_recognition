@@ -18,7 +18,7 @@ let REFERENCE_NAMES = [];
 let IMG_NAME = [];
 
 async function get_image_list(img_name) {
-    await fetch('http://43.139.5.93:9090/facerecognition/' + img_name)
+    await fetch('https://minio.origami.wang/facerecognition/' + img_name)
         .then(response => response.blob())
         .then(file_blob => {
             // 注意，图片必须是jpg格式
