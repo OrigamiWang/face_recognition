@@ -17,8 +17,26 @@
             background-size: 100% 100%;
         }
 
+        video {
+            z-index: 1;
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            height: auto;
+            width: auto;
+        }
+
         canvas {
-            position: absolute;
+            z-index: 2;
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            height: auto;
+            width: auto;
         }
 
         .multiple-text-shadow {
@@ -30,6 +48,16 @@
             0 0 4px #32003C,
             0 0 4px #32003C;
         }
+
+        .word {
+            z-index: 3;
+            position: absolute;
+            left: 40%;
+            top: 0;
+            font-weight: bold;
+            font-size: 50px;
+            color: red
+        }
     </style>
 
     <script defer src="face-api.min.js"></script>
@@ -37,12 +65,10 @@
 </head>
 
 <body>
-<div id="word" class="multiple-text-shadow"
-     style="position: absolute;left: 40%; top: 0; font-weight: bold; font-size: 50px; color: red">
+<div id="word" class="word multiple-text-shadow">
     正在加载模型...
 </div>
 <video id="video" width="1280" height="960" autoplay muted></video>
 <canvas id="canvas" width="1280" height="960"></canvas>
-
 </body>
 </html>
