@@ -1,7 +1,7 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
-const MODEL_URL = "/models";
+const MODEL_URL = "./models";
 const welcome = document.getElementById('welcome')
 // 图片路径和名字
 
