@@ -3,8 +3,8 @@ const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 const MODEL_URL = "./models";
 const welcome = document.getElementById('welcome')
+const displaySize = {width: window.innerWidth, height: window.innerHeight}
 // 图片路径和名字
-
 // 百度找的图片，证明了url可以使用
 // const REFERENCE_IMAGES = ["https://img0.baidu.com/it/u=1738859342,863155099&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=733"];
 
@@ -99,17 +99,14 @@ async function getReferenceDescriptors() {
 
 // 启动摄像头
 async function startVideo() {
-    const stream = await navigator.mediaDevices.getUserMedia({video: {}});
-    video.srcObject = stream;
+    const stream = await navigator.mediaDevices.getUserMedia({video: {aspectRatio: 16 / 9}});    video.srcObject = stream;
 }
 
 async function set_width_and_height() {
-    let ratio = 4 / 3;
-    let basic_height = 720
-    video.width = basic_height * ratio
-    canvas.width = basic_height * ratio
-    video.height = basic_height
-    canvas.height = basic_height
+    video.width = displaySize.width
+    video.height = displaySize.height
+    canvas.width = displaySize.width
+    canvas.height = displaySize.height
 
 }
 
@@ -153,13 +150,11 @@ async function main() {
         await change_welcome(results)
         // 清空canvas
         context.clearRect(0, 0, canvas.width, canvas.height);
-        // 在canvas上绘制人脸框和名字
 
-        // 将检测结果适配到画布大小
-        let resizedDetections = faceapi.resizeResults(detections, canvas);
-        // 在画布上绘制人脸识别框
-        faceapi.draw.drawDetections(canvas, resizedDetections);
-        console.log("result.box = ")
+        context.drawImage(video, 0, 0, video.width, video.height)
+        const resizedDetections = faceapi.resizeResults(detections, displaySize)
+        faceapi.draw.drawDetections(canvas, resizedDetections)
+
         results.forEach(result => {
             console.log(result.box)
             context.strokeStyle = "blue";
@@ -168,7 +163,7 @@ async function main() {
             context.font = "40px Arial";
             if (result.distance < 0.45) {
                 context.fillText(result.name + " (" + result.distance.toFixed(2) + ")",
-                    (result.box.x + 5) * video.width / 640, (result.box.y - 40) * video.height / 480);
+                    (result.box.x + 5) * video.width / 640, (result.box.y - 30) * video.height / 480);
             }
         });
     }, 100);
