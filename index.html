@@ -12,10 +12,23 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            background-image: url('static/background.png');
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
         }
 
         canvas {
             position: absolute;
+        }
+
+        .multiple-text-shadow {
+            text-shadow: 0 0 4px #32003C,
+            0 0 4px #32003C,
+            0 0 4px #32003C,
+            0 0 4px #32003C,
+            0 0 4px #32003C,
+            0 0 4px #32003C,
+            0 0 4px #32003C;
         }
     </style>
 
@@ -24,11 +37,12 @@
 </head>
 
 <body>
-<!-- 创建一个video元素，用于显示摄像头的画面 -->
-<video id="video" width="640" height="480" autoplay muted></video>
-<!-- 创建一个canvas元素，用于显示识别结果 -->
-<canvas id="canvas" width="640" height="480"></canvas>
-<!-- 创建一个script元素，用于编写逻辑代码 -->
+<div id="word" class="multiple-text-shadow"
+     style="position: absolute;left: 40%; top: 0; font-weight: bold; font-size: 50px; color: red">
+    正在加载模型...
+</div>
+<video id="video" width="1280" height="960" autoplay muted></video>
+<canvas id="canvas" width="1280" height="960"></canvas>
 
 </body>
 </html>
