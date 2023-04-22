@@ -61,9 +61,11 @@ async function change_welcome(results) {
         }
         if (min < 999) {
             document.getElementById('word').innerHTML = results[min].name + "领导,您回来了";
+            window.name = results[min].name + "领导,您回来了"
         }
     } else {
         document.getElementById('word').innerHTML = "您好，朋友！";
+        window.name = "您好，朋友！"
     }
 }
 
