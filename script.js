@@ -51,8 +51,6 @@ async function change_welcome(results) {
         for (let i = 0; i < results.length; i++) {
             if (results[i].distance < 0.45) {
                 for (let j = 0; j < REFERENCE_NAMES.length; j++) {
-                    console.log(results[i].name);
-                    console.log(REFERENCE_NAMES[j]);
                     if (i < min && results[i].name === REFERENCE_NAMES[j]) {
                         min = i;
                     }
@@ -72,7 +70,6 @@ async function change_welcome(results) {
 // 将url转成blob
 async function save_data() {
     await get_data_from_minio()
-    console.log(REFERENCE_NAMES)
     console.log(IMG_NAME)
     for (let i = 0; i < IMG_NAME.length; i++) {
         await get_image_list(IMG_NAME[i])
@@ -92,7 +89,6 @@ async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
-        console.log(typeof img)
         const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
         descriptors.push(detection.descriptor);
     }
@@ -114,7 +110,7 @@ async function set_width_and_height() {
 
 // 主函数
 async function main() {
-
+    window.name = "你好朋友！";
     console.log("进入main函数")
     // 设置宽高
     await set_width_and_height();
@@ -158,7 +154,6 @@ async function main() {
         faceapi.draw.drawDetections(canvas, resizedDetections)
 
         results.forEach(result => {
-            console.log(result.box)
             context.strokeStyle = "blue";
             context.lineWidth = 2;
             context.fillStyle = "blue";
