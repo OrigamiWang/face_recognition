@@ -12,9 +12,16 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-image: url('static/background.png');
             background-repeat: no-repeat;
             background-size: 100% 100%;
+        }
+
+        .logo {
+            z-index: 3;
+            position: fixed;
+            height: 300px;
+            left: 0px;
+            bottom: 0px;
         }
 
         video {
@@ -29,8 +36,8 @@
         }
 
         canvas {
-            z-index: 2;
-            position: fixed;
+            z-index: 1;
+            position: relative;
             right: 0;
             bottom: 0;
             min-width: 100%;
@@ -52,7 +59,7 @@
         .word {
             z-index: 3;
             position: absolute;
-            left: 40%;
+            left: 30%;
             top: 0;
             font-weight: bold;
             font-size: 50px;
@@ -63,13 +70,19 @@
     <script defer src="face-api.min.js"></script>
     <script defer src="script.js"></script>
     <script src="public/live2d-widget/autoload.js"></script>
+    <script src="progress.js"></script>
 </head>
 
 <body>
 <div id="word" class="word multiple-text-shadow">
     正在加载模型...
+    <div style=" display: block; z-index: 3" id="p1" onclick="load_progress()">
+        <progress id="progress" max="100" value="0"></progress>
+        <label id="loading">0</label>%
+    </div>
 </div>
 <video id="video" width="1280" height="960" autoplay muted></video>
 <canvas id="canvas" width="1280" height="960"></canvas>
+<img class="logo" src="static/logo.png" alt="">
 </body>
 </html>

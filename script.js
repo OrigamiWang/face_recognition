@@ -18,31 +18,51 @@ const REFERENCE_IMAGES = [];
 let REFERENCE_NAMES = [];
 let IMG_NAME = [];
 
-async function get_image_list(img_name) {
-    await fetch('https://minio.origami.wang/facerecognition/' + img_name)
-        .then(response => response.blob())
-        .then(file_blob => {
-            // 注意，图片必须是jpg格式
-            let img_blob = new Blob([file_blob], {type: "image/jpeg"})
-            console.log(img_blob)
-            let img_url = URL.createObjectURL(img_blob)
-            console.log(img_url)
-            REFERENCE_IMAGES.push(img_url)
-        })
-}
+// async function get_image_list(img_name) {
+//     await fetch('https://minio.origami.wang/facerecognition/' + img_name)
+//         .then(response => response.blob())
+//         .then(file_blob => {
+//             // 注意，图片必须是jpg格式
+//             let img_blob = new Blob([file_blob], {type: "image/jpeg"})
+//             console.log(img_blob)
+//             let img_url = URL.createObjectURL(img_blob)
+//             console.log(img_url)
+//             REFERENCE_IMAGES.push(img_url)
+//         })
+// }
+//
 
-async function get_data_from_minio() {
-    await fetch('https://faceapi.origami.wang/data')
+async function get_face_name_and_url() {
+    await fetch('https://faceapi.origami.wang/peopleFace')
         .then(response => response.text())
-        .then(data => data.split(','))
         .then(res => {
-            REFERENCE_NAMES = res;
-            for (let i = 0; i < REFERENCE_NAMES.length; i++) {
-                IMG_NAME.push(REFERENCE_NAMES[i] + ".jpg")
+            let arr = res.split(',')
+            for (let i = 0; i < arr.length; i++) {
+                console.log(arr[i])
+                if (i % 2 === 0) {
+                    REFERENCE_NAMES.push(arr[i]);
+                } else {
+                    REFERENCE_IMAGES.push(arr[i]);
+                }
             }
+
+        })
+}
+
+async function set_background_image() {
+    // 将live2d的语言初始化也放在这儿
+    window.name = "你好朋友！";
+
+    let body_style = document.body.style
+    console.log("加载背景图片...")
+    await fetch('https://faceapi.origami.wang/backgroundImage')
+        .then(response => response.text())
+        .then(res => {
+            body_style.backgroundImage = "url('" + res + "')"
         })
 
 }
+
 
 async function change_welcome(results) {
     if (results.length)//如果识别到人脸且相关程度够高
@@ -58,21 +78,12 @@ async function change_welcome(results) {
             }
         }
         if (min < 999) {
-            document.getElementById('word').innerHTML = results[min].name + "领导,您回来了";
-            window.name = results[min].name + "领导,您回来了"
+            document.getElementById('word').innerHTML = "欢迎" + results[min].name + "莅临指导工作"
+            window.name = "欢迎" + results[min].name + "莅临指导工作"
         }
     } else {
         document.getElementById('word').innerHTML = "您好，朋友！";
         window.name = "您好，朋友！"
-    }
-}
-
-// 将url转成blob
-async function save_data() {
-    await get_data_from_minio()
-    console.log(IMG_NAME)
-    for (let i = 0; i < IMG_NAME.length; i++) {
-        await get_image_list(IMG_NAME[i])
     }
 }
 
@@ -89,7 +100,8 @@ async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
-        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
+        // const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
         descriptors.push(detection.descriptor);
     }
     return descriptors;
@@ -97,7 +109,10 @@ async function getReferenceDescriptors() {
 
 // 启动摄像头
 async function startVideo() {
-    const stream = await navigator.mediaDevices.getUserMedia({video: {aspectRatio: 16 / 9}});    video.srcObject = stream;
+    this.progress.value = 95
+    const stream = await navigator.mediaDevices.getUserMedia({video: {aspectRatio: 16 / 9}});
+    video.srcObject = stream;
+    this.progress.value = 100
 }
 
 async function set_width_and_height() {
@@ -110,23 +125,41 @@ async function set_width_and_height() {
 
 // 主函数
 async function main() {
-    window.name = "你好朋友！";
+    // 加载进度条 0%
+    await load_progress()
+
+    // 10%
+    await set_background_image()
+    this.progress.value = 10
+
     console.log("进入main函数")
     // 设置宽高
+    // 15%
     await set_width_and_height();
-    // 加载模型文件
-    await loadModels();
-    // 加载图片文件
-    await save_data();
-    // 获取参考图片中的人脸描述
-    const referenceDescriptors = await getReferenceDescriptors();
+    this.progress.value = 15
 
+    // 加载模型文件
+    // 40%
+    await loadModels();
+    this.progress.value = 40
+
+    // 加载图片文件
+    // 80%
+    await get_face_name_and_url();
+    this.progress.value = 60
+    // 获取参考图片中的人脸描述
+
+
+    const referenceDescriptors = await getReferenceDescriptors();
     // 启动摄像头
+
     await startVideo();
+
+
     // 每隔100毫秒，对摄像头画面进行人脸识别，并在canvas上显示结果
     setInterval(async () => {
         // 获取摄像头画面中的人脸描述
-        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks(false).withFaceDescriptors();
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
             let minDistance = Infinity;
@@ -151,7 +184,14 @@ async function main() {
 
         context.drawImage(video, 0, 0, video.width, video.height)
         const resizedDetections = faceapi.resizeResults(detections, displaySize)
-        faceapi.draw.drawDetections(canvas, resizedDetections)
+        // 关闭人脸置信度
+        const options = {withScore: false}
+        faceapi.draw.drawDetections(canvas, resizedDetections, options)
+        // 修改字号
+        document.getElementById('word').style.fontSize = "100px"
+        // 修改边距
+        document.getElementById('word').style.textAlign = "center"
+
 
         results.forEach(result => {
             context.strokeStyle = "blue";
@@ -159,8 +199,8 @@ async function main() {
             context.fillStyle = "blue";
             context.font = "40px Arial";
             if (result.distance < 0.45) {
-                context.fillText(result.name + " (" + result.distance.toFixed(2) + ")",
-                    (result.box.x + 5) * video.width / 640, (result.box.y - 30) * video.height / 480);
+                context.fillText(result.name,
+                    (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
             }
         });
     }, 100);

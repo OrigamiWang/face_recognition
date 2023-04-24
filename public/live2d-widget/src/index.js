@@ -43,7 +43,7 @@ function loadWidget(config) {
                 }
             }
         }
-        const text = `欢迎阅读<span>「${document.title.split(" - ")[0]}」</span>`;
+        const text = ``;
         let from;
         if (document.referrer !== "") {
             const referrer = new URL(document.referrer),
@@ -82,7 +82,7 @@ function loadWidget(config) {
             }
         }, 1000);
         setInterval(() => {
-            console.log("window.name = "+window.name);
+            // console.log("window.name = "+window.name);
             // if (window.name != '') {
                 showMessage(window.name, 6000, 9);
                 // window.name = ''

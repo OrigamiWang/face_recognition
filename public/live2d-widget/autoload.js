@@ -24,7 +24,7 @@ function loadExternalResource(url, type) {
 	});
 }
 
-// 加载 waifu.css live2d.min.js waifu-tips.js
+// 加载 waifu3.css live2d.min.js waifu-tips.js
 if (screen.width >= 768) {
 	Promise.all([
 		loadExternalResource(live2d_path + "waifu.css", "css"),
