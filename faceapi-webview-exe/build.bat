@@ -1,0 +1,1 @@
+g++ source.cc -std=c++17 -mwindows -Ilibs/webview -Ilibs/webview2/build/native/include -ladvapi32 -lole32 -lshell32 -lshlwapi -luser32 -lversion --static -o build/ÈËÁ³Ê¶±ð.exe

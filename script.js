@@ -1,3 +1,14 @@
+// 使得face-api.js能够在electron正常工作的解决方法
+// 具体参考：https://levelup.gitconnected.com/do-not-laugh-a-simple-ai-powered-game-3e22ad0f8166
+faceapi.env.monkeyPatch({
+    Canvas: HTMLCanvasElement,
+    Image: HTMLImageElement,
+    ImageData: ImageData,
+    Video: HTMLVideoElement,
+    createCanvasElement: () => document.createElement('canvas'),
+    createImageElement: () => document.createElement('img')
+});
+
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
@@ -100,7 +111,7 @@ async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
-        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
+        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
         // const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
         descriptors.push(detection.descriptor);
     }
@@ -124,7 +135,7 @@ async function set_width_and_height() {
 }
 
 // 主函数
-async function main() {
+async function script() {
     // 加载进度条 0%
     await load_progress()
 
@@ -159,7 +170,7 @@ async function main() {
     // 每隔100毫秒，对摄像头画面进行人脸识别，并在canvas上显示结果
     setInterval(async () => {
         // 获取摄像头画面中的人脸描述
-        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks(false).withFaceDescriptors();
+        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
             let minDistance = Infinity;
@@ -184,8 +195,16 @@ async function main() {
 
         context.drawImage(video, 0, 0, video.width, video.height)
         const resizedDetections = faceapi.resizeResults(detections, displaySize)
-        // 关闭人脸置信度
-        const options = {withScore: false}
+        // TODO: 想换一种方法，报错更看不懂
+        // resizedDetections.forEach(detection => {
+        //     const box = new faceapi.draw.DrawBox(detection.box, {label: ''}) // 空标签表示不显示置信度
+        //     box.draw(canvas)
+        // })
+        // TODO:关闭人脸置信度, 调颜色均失效...
+        const options = {
+            withScore: false, withClassName: true, withCredentials: false,
+            withClassScores: false, textColor: 'white', boxColor: 'white'
+        }
         faceapi.draw.drawDetections(canvas, resizedDetections, options)
         // 修改字号
         document.getElementById('word').style.fontSize = "100px"
@@ -207,4 +226,4 @@ async function main() {
 }
 
 // 调用主函数
-main()
+script()
