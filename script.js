@@ -121,6 +121,7 @@ async function loadModels() {
 async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
+        this.progress.value += 5
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
         // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
         const useTinyModel = true
@@ -149,6 +150,7 @@ async function set_width_and_height() {
 }
 
 // 主函数
+
 async function script() {
     // 加载进度条 0%
     await load_progress()

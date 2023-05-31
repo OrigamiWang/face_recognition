@@ -1,8 +1,9 @@
 *.md
-
-test
+test/
 out/
-node_modules/*
-.idea/*
+node_modules/
+.idea/
 log
 log.txt
+**/*.zip
+faceapi-webview-exe/

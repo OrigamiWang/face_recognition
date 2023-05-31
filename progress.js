@@ -6,7 +6,7 @@ async function load_progress() {
     let load = setInterval(function () {
         that.progress.value += 1;
         that.loading.innerText = that.progress.value
-        if (that.progress.value >= 99) {
+        if (that.progress.value >= 100) {
             that.p1.style.display = "none"
             clearInterval(load)
         }
