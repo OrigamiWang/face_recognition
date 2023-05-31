@@ -20,8 +20,8 @@
             z-index: 3;
             position: fixed;
             height: 300px;
-            left: 0px;
-            bottom: 0px;
+            left: 0;
+            bottom: 0;
         }
 
         video {
@@ -66,18 +66,18 @@
             color: red
         }
     </style>
-
+    <link rel="shortcut icon" href="static/sztulogo.png">
+    <script defer src="progress.js"></script>
     <script defer src="face-api.min.js"></script>
     <script defer src="script.js"></script>
-    <script src="public/live2d-widget/autoload.js"></script>
-    <script src="progress.js"></script>
+    <script defer src="public/live2d-widget/autoload.js"></script>
 
 </head>
 
 <body>
 <div id="word" class="word multiple-text-shadow">
     正在加载模型...
-    <div style=" display: block; z-index: 3" id="p1" onclick="load_progress()">
+    <div style=" display: block; z-index: 3" id="p1">
         <progress id="progress" max="100" value="0"></progress>
         <label id="loading">0</label>%
     </div>

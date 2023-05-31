@@ -13,7 +13,7 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
 const MODEL_URL = "./models";
-const welcome = document.getElementById('welcome')
+// const welcome = document.getElementById('welcome')
 const displaySize = {width: window.innerWidth, height: window.innerHeight}
 // 图片路径和名字
 // 百度找的图片，证明了url可以使用
@@ -91,7 +91,11 @@ async function change_welcome(results) {
         if (min < 999) {
             document.getElementById('word').innerHTML = "欢迎" + results[min].name + "莅临指导工作"
             window.name = "欢迎" + results[min].name + "莅临指导工作"
+        } else {
+            document.getElementById('word').innerHTML = "您好，朋友！";
+            window.name = "您好，朋友！"
         }
+
     } else {
         document.getElementById('word').innerHTML = "您好，朋友！";
         window.name = "您好，朋友！"
@@ -101,9 +105,16 @@ async function change_welcome(results) {
 
 // 加载模型文件
 async function loadModels() {
-    await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    // ssd 模型
+    // await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+    // await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    // await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    console.log("加载模型前....")
+    // 使用 tiny 模型提速
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    console.log("加载模型后....")
 }
 
 // 获取参考图片中的人脸描述
@@ -111,7 +122,10 @@ async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
-        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+        // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
+        const useTinyModel = true
+        const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks(useTinyModel).withFaceDescriptor();
         // const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
         descriptors.push(detection.descriptor);
     }
@@ -157,20 +171,28 @@ async function script() {
     // 加载图片文件
     // 80%
     await get_face_name_and_url();
+
+    console.log("get_face_name_and_url 执行成功...")
     this.progress.value = 60
     // 获取参考图片中的人脸描述
 
 
     const referenceDescriptors = await getReferenceDescriptors();
-    // 启动摄像头
+    console.log("getReferenceDescriptors成功...")
 
+    console.log("启动摄像头前...")
+    // 启动摄像头
     await startVideo();
+    console.log("启动摄像头后...")
 
 
     // 每隔100毫秒，对摄像头画面进行人脸识别，并在canvas上显示结果
     setInterval(async () => {
         // 获取摄像头画面中的人脸描述
-        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+        // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
+        const useTinyModel = true;
+        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks(useTinyModel).withFaceDescriptors();
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
             let minDistance = Infinity;
