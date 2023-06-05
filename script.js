@@ -74,32 +74,22 @@ async function set_background_image() {
 
 }
 
-
 async function change_welcome(results) {
-    if (results.length)//如果识别到人脸且相关程度够高
-    {
-        let min = 999;
-        for (let i = 0; i < results.length; i++) {
-            if (results[i].distance < 0.45) {
-                for (let j = 0; j < REFERENCE_NAMES.length; j++) {
-                    if (i < min && results[i].name === REFERENCE_NAMES[j]) {
-                        min = i;
-                    }
-                }
+    let res = ""
+    if (results.length) {
+        results.forEach(result => {
+            if (result.distance < 0.45) {
+                res += "," + result.name
             }
-        }
-        if (min < 999) {
-            document.getElementById('word').innerHTML = "欢迎" + results[min].name + "莅临指导工作"
-            window.name = "欢迎" + results[min].name + "莅临指导工作"
-        } else {
-            document.getElementById('word').innerHTML = "您好，朋友！";
-            window.name = "您好，朋友！"
-        }
-
+        })
+        res = res.substring(1)
+        res = "欢迎" + res + "莅临指导工作"
+        console.log(res)
     } else {
-        document.getElementById('word').innerHTML = "您好，朋友！";
-        window.name = "您好，朋友！"
+        res = "您好，朋友！"
     }
+    document.getElementById('word').innerHTML = res
+    window.name = res
 }
 
 
@@ -127,7 +117,8 @@ async function getReferenceDescriptors() {
         const useTinyModel = true
         const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks(useTinyModel).withFaceDescriptor();
-        // const detection = await faceapi.detectSingleFace(img).withFaceLandmarks(false).withFaceDescriptor();
+        // const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+        //     .withFaceLandmarks(useTinyModel).withFaceDescriptor();
         descriptors.push(detection.descriptor);
     }
     return descriptors;
@@ -193,7 +184,7 @@ async function script() {
         // 获取摄像头画面中的人脸描述
         // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
         const useTinyModel = true;
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({withFaceExpressions: false}))
             .withFaceLandmarks(useTinyModel).withFaceDescriptors();
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
@@ -210,6 +201,8 @@ async function script() {
                 name: REFERENCE_NAMES[minIndex],
                 distance: minDistance,
                 box: fd.detection.box,
+                // 加入分数，为了区分人脸和名字
+                score: fd.detection.score
             };
         });
 
@@ -219,33 +212,42 @@ async function script() {
 
         context.drawImage(video, 0, 0, video.width, video.height)
         const resizedDetections = faceapi.resizeResults(detections, displaySize)
-        // TODO: 想换一种方法，报错更看不懂
-        // resizedDetections.forEach(detection => {
-        //     const box = new faceapi.draw.DrawBox(detection.box, {label: ''}) // 空标签表示不显示置信度
-        //     box.draw(canvas)
-        // })
-        // TODO:关闭人脸置信度, 调颜色均失效...
-        const options = {
-            withScore: false, withClassName: true, withCredentials: false,
-            withClassScores: false, textColor: 'white', boxColor: 'white'
-        }
-        faceapi.draw.drawDetections(canvas, resizedDetections, options)
+
         // 修改字号
         document.getElementById('word').style.fontSize = "100px"
         // 修改边距
         document.getElementById('word').style.textAlign = "center"
 
-
-        results.forEach(result => {
-            context.strokeStyle = "blue";
-            context.lineWidth = 2;
-            context.fillStyle = "blue";
+        // 改成自己画框，可以实现去掉默认画框上的置信度，但是会有一个问题，无法匹配画框与人的名字
+        // 我们发现，results中存有名字，而results和detections的score在某种程度上是一一对应的关系
+        // 因此我么可以通过判断score是否相等，来区分画框与人的名字
+        resizedDetections.forEach(detection => {
+            const box = detection.detection.box;
+            context.beginPath();
+            context.rect(box.x, box.y, box.width, box.height);
+            context.strokeStyle = 'blue';
+            context.stroke();
             context.font = "40px Arial";
-            if (result.distance < 0.45) {
-                context.fillText(result.name,
-                    (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
-            }
+            context.fillStyle = "blue";
+            results.forEach(result => {
+                if (result.distance < 0.45 && detection.detection.score === result.score) {
+                    context.fillText(result.name,
+                        (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
+                }
+            });
         });
+
+
+        // results.forEach(result => {
+        //     context.strokeStyle = "red";
+        //     context.lineWidth = 2;
+        //     context.fillStyle = "blue";
+        //     context.font = "40px Arial";
+        //     if (result.distance < 0.45) {
+        //         context.fillText(result.name,
+        //             (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
+        //     }
+        // });
     }, 100);
 }
 
