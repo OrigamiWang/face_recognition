@@ -15,6 +15,9 @@ const context = canvas.getContext("2d");
 const MODEL_URL = "./models";
 // const welcome = document.getElementById('welcome')
 const displaySize = {width: window.innerWidth, height: window.innerHeight}
+
+// 快速替换所选用的模型，true代表使用ssd，false代表使用tiny
+const model_select = false
 // 图片路径和名字
 // 百度找的图片，证明了url可以使用
 // const REFERENCE_IMAGES = ["https://img0.baidu.com/it/u=1738859342,863155099&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=733"];
@@ -78,13 +81,12 @@ async function change_welcome(results) {
     let res = ""
     if (results.length) {
         results.forEach(result => {
-            if (result.distance < 0.45) {
+            if (result.distance < 0.35) {
                 res += "," + result.name
             }
         })
         res = res.substring(1)
         res = "欢迎" + res + "莅临指导工作"
-        console.log(res)
     } else {
         res = "您好，朋友！"
     }
@@ -95,15 +97,18 @@ async function change_welcome(results) {
 
 // 加载模型文件
 async function loadModels() {
-    // ssd 模型
-    // await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-    // await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-    // await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
     console.log("加载模型前....")
-    // 使用 tiny 模型提速
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
-    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    if (model_select) {
+        // ssd 模型
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    } else {
+        // tiny 模型
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    }
     console.log("加载模型后....")
 }
 
@@ -114,11 +119,16 @@ async function getReferenceDescriptors() {
         this.progress.value += 5
         const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
         // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
-        const useTinyModel = true
-        const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks(useTinyModel).withFaceDescriptor();
-        // const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-        //     .withFaceLandmarks(useTinyModel).withFaceDescriptor();
+        let detection = null
+        if (model_select) {
+            detection = await faceapi.detectSingleFace(img)
+                .withFaceLandmarks().withFaceDescriptor();
+        } else {
+            const useTinyModel = true
+            detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks(useTinyModel).withFaceDescriptor();
+        }
+
         descriptors.push(detection.descriptor);
     }
     return descriptors;
@@ -183,9 +193,16 @@ async function script() {
     setInterval(async () => {
         // 获取摄像头画面中的人脸描述
         // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
-        const useTinyModel = true;
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({withFaceExpressions: false}))
-            .withFaceLandmarks(useTinyModel).withFaceDescriptors();
+        let detections = null
+        if (model_select) {
+            detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({withFaceExpressions: false}))
+                .withFaceLandmarks().withFaceDescriptors();
+        } else {
+            const useTinyModel = true;
+            detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({withFaceExpressions: false}))
+                .withFaceLandmarks(useTinyModel).withFaceDescriptors();
+        }
+
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
             let minDistance = Infinity;
@@ -230,7 +247,7 @@ async function script() {
             context.font = "40px Arial";
             context.fillStyle = "blue";
             results.forEach(result => {
-                if (result.distance < 0.45 && detection.detection.score === result.score) {
+                if (result.distance < 0.35 && detection.detection.score === result.score) {
                     context.fillText(result.name,
                         (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
                 }
