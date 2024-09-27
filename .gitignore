@@ -6,4 +6,5 @@ node_modules/
 log
 log.txt
 **/*.zip
-faceapi-webview-exe/
+faceapi-webview-exe/dist/Face Recognition Setup 1.0.0.exe
+dist/win-unpacked/Face Recognition.exe
