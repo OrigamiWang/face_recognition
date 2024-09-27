@@ -27,7 +27,7 @@ const model_select = false
 // const REFERENCE_IMAGES = ["http://43.139.5.93:9090/facerecognition/wyx.jpg"]
 
 
-const REFERENCE_IMAGES = [];
+let REFERENCE_IMAGES = [];
 // const REFERENCE_IMAGES = ["face_images/wyx.jpg"];
 let REFERENCE_NAMES = [];
 let IMG_NAME = [];
@@ -47,34 +47,20 @@ let IMG_NAME = [];
 //
 
 async function get_face_name_and_url() {
-    await fetch('https://faceapi.origami.wang/peopleFace')
-        .then(response => response.text())
-        .then(res => {
-            let arr = res.split(',')
-            for (let i = 0; i < arr.length; i++) {
-                console.log(arr[i])
-                if (i % 2 === 0) {
-                    REFERENCE_NAMES.push(arr[i]);
-                } else {
-                    REFERENCE_IMAGES.push(arr[i]);
-                }
-            }
-
-        })
+    const response = await fetch('/api/faces');
+    const faces = await response.json();
+    REFERENCE_NAMES = faces.map(face => face.name);
+    REFERENCE_IMAGES = faces.map(face => face.url);
+    console.log(REFERENCE_IMAGES)
 }
 
 async function set_background_image() {
-    // 将live2d的语言初始化也放在这儿
     window.name = "你好朋友！";
-
-    let body_style = document.body.style
-    console.log("加载背景图片...")
-    await fetch('https://faceapi.origami.wang/backgroundImage')
-        .then(response => response.text())
-        .then(res => {
-            body_style.backgroundImage = "url('" + res + "')"
-        })
-
+    let body_style = document.body.style;
+    console.log("加载背景图片...");
+    const response = await fetch('/api/background');
+    const background = await response.json();
+    body_style.backgroundImage = `url('${background.url}')`;
 }
 
 async function change_welcome(results) {
@@ -97,19 +83,29 @@ async function change_welcome(results) {
 
 // 加载模型文件
 async function loadModels() {
-    console.log("加载模型前....")
-    if (model_select) {
-        // ssd 模型
-        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-    } else {
-        // tiny 模型
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    console.log("开始加载模型...");
+    try {
+        if (model_select) {
+            console.log("加载 SSD 模型...");
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            console.log("SSD 模型加载完成");
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            console.log("Landmark 模型加载完成");
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            console.log("Recognition 模型加载完成");
+        } else {
+            console.log("加载 Tiny 模型...");
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            console.log("Tiny 模型加载完成");
+            await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+            console.log("Tiny Landmark 模型加载完成");
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            console.log("Recognition 模型加载完成");
+        }
+        console.log("所有模型加载完成");
+    } catch (error) {
+        console.error("模型加载失败:", error);
     }
-    console.log("加载模型后....")
 }
 
 // 获取参考图片中的人脸描述
@@ -117,19 +113,27 @@ async function getReferenceDescriptors() {
     const descriptors = [];
     for (let i = 0; i < REFERENCE_IMAGES.length; i++) {
         this.progress.value += 5
-        const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
-        // 形参列表添加 new faceapi.TinyFaceDetectorOptions() 表明使用tiny模型
-        let detection = null
-        if (model_select) {
-            detection = await faceapi.detectSingleFace(img)
-                .withFaceLandmarks().withFaceDescriptor();
-        } else {
-            const useTinyModel = true
-            detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks(useTinyModel).withFaceDescriptor();
+        try {
+            const img = await faceapi.fetchImage(REFERENCE_IMAGES[i]);
+            console.log(`Processing image: ${REFERENCE_IMAGES[i]}`);
+            let detection = null
+            if (model_select) {
+                detection = await faceapi.detectSingleFace(img)
+                    .withFaceLandmarks().withFaceDescriptor();
+            } else {
+                const useTinyModel = true
+                detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks(useTinyModel).withFaceDescriptor();
+            }
+            
+            if (detection) {
+                descriptors.push(detection.descriptor);
+            } else {
+                console.warn(`No face detected in image: ${REFERENCE_IMAGES[i]}`);
+            }
+        } catch (error) {
+            console.error(`Error processing image ${REFERENCE_IMAGES[i]}:`, error);
         }
-
-        descriptors.push(detection.descriptor);
     }
     return descriptors;
 }
@@ -236,6 +240,8 @@ async function script() {
         document.getElementById('word').style.textAlign = "center"
 
         // 改成自己画框，可以实现去掉默认画框上的置信度，但是会有一个问题，无法匹配画框与人的名字
+        // 我们发现，results中存有名字，而results和detections的score在某种程度上是一一对应的关系
+        // 因此我么可以通过判断score是否相等，来区分画框与人的名字
         // 我们发现，results中存有名字，而results和detections的score在某种程度上是一一对应的关系
         // 因此我么可以通过判断score是否相等，来区分画框与人的名字
         resizedDetections.forEach(detection => {

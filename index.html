@@ -22,6 +22,7 @@
             height: 300px;
             left: 0;
             bottom: 0;
+            cursor: pointer; /* 添加这行，使鼠标悬停时显示为手型 */
         }
 
         video {
@@ -67,11 +68,10 @@
         }
     </style>
     <link rel="shortcut icon" href="static/sztulogo.png">
-    <script defer src="progress.js"></script>
     <script defer src="face-api.min.js"></script>
+    <script defer src="progress.js"></script>
     <script defer src="script.js"></script>
     <script defer src="public/live2d-widget/autoload.js"></script>
-
 </head>
 
 <body>
@@ -84,6 +84,8 @@
 </div>
 <video id="video" width="1280" height="960" autoplay muted></video>
 <canvas id="canvas" width="1280" height="960"></canvas>
-<img class="logo" src="static/logo.png" alt="">
+<a href="/manage">
+    <img class="logo" src="static/logo.png" alt="管理页面">
+</a>
 </body>
 </html>
