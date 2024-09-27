@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Jimp = require('jimp');
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
@@ -48,27 +49,41 @@ app.get('/api/background', (req, res) => {
 });
 
 // 添加人脸
-app.post('/api/faces', upload.single('file'), (req, res) => {
+app.post('/api/faces', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
-    const newPath = path.join(__dirname, 'faces', `${req.body.name}${path.extname(req.file.originalname)}`);
-    fs.renameSync(req.file.path, newPath);
-    res.json({ message: 'Face added successfully' });
+    try {
+        const image = await Jimp.read(req.file.path);
+        const newPath = path.join(__dirname, 'faces', `${req.body.name}${path.extname(req.file.originalname)}`);
+        await image.writeAsync(newPath);
+        fs.unlinkSync(req.file.path);
+        res.json({ message: 'Face added successfully' });
+    } catch (error) {
+        console.error('Error processing image:', error);
+        res.status(500).json({ error: 'Error processing image' });
+    }
 });
 
 // 更新背景图片
-app.post('/api/background', upload.single('file'), (req, res) => {
+app.post('/api/background', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
-    const backgroundDir = path.join(__dirname, 'background');
-    fs.readdirSync(backgroundDir).forEach(file => {
-        fs.unlinkSync(path.join(backgroundDir, file));
-    });
-    const newPath = path.join(backgroundDir, req.file.originalname);
-    fs.renameSync(req.file.path, newPath);
-    res.json({ message: 'Background image updated successfully' });
+    try {
+        const image = await Jimp.read(req.file.path);
+        const backgroundDir = path.join(__dirname, 'background');
+        fs.readdirSync(backgroundDir).forEach(file => {
+            fs.unlinkSync(path.join(backgroundDir, file));
+        });
+        const newPath = path.join(backgroundDir, req.file.originalname);
+        await image.writeAsync(newPath);
+        fs.unlinkSync(req.file.path);
+        res.json({ message: 'Background image updated successfully' });
+    } catch (error) {
+        console.error('Error processing image:', error);
+        res.status(500).json({ error: 'Error processing image' });
+    }
 });
 
 // 删除人脸

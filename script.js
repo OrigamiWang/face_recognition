@@ -1,5 +1,4 @@
-// 使得face-api.js能够在electron正常工作的解决方法
-// 具体参考：https://levelup.gitconnected.com/do-not-laugh-a-simple-ai-powered-game-3e22ad0f8166
+// 使用 HTMLCanvasElement 替代 canvas 模块
 faceapi.env.monkeyPatch({
     Canvas: HTMLCanvasElement,
     Image: HTMLImageElement,
@@ -222,7 +221,7 @@ async function script() {
                 name: REFERENCE_NAMES[minIndex],
                 distance: minDistance,
                 box: fd.detection.box,
-                // 加入分数，为了区分人脸和名字
+                // 加入���数，为了区分人脸和名字
                 score: fd.detection.score
             };
         });
