@@ -9,9 +9,16 @@ const app = express();
 // 配置 multer 以使用自定义存储
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = path.join(app.get('userDataPath'), 'uploads');
+        console.log('上传目录:', uploadDir);
         if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+            console.log('创建上传目录');
+            try {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            } catch (err) {
+                console.error('创建上传目录失败:', err);
+                return cb(err, null);
+            }
         }
         cb(null, uploadDir);
     },
@@ -70,14 +77,19 @@ app.post('/api/faces', upload.single('file'), (req, res) => {
         return res.status(400).json({ error: '没有上传文件' });
     }
     try {
-        const facesDir = path.join(__dirname, 'faces');
+        const facesDir = path.join(app.get('userDataPath'), 'faces');
         
         console.log(`人脸目录: ${facesDir}`);
         
         // 确保 faces 目录存在
         if (!fs.existsSync(facesDir)) {
             console.log('创建人脸目录');
-            fs.mkdirSync(facesDir, { recursive: true });
+            try {
+                fs.mkdirSync(facesDir, { recursive: true });
+            } catch (err) {
+                console.error('创建人脸目录失败:', err);
+                return res.status(500).json({ error: '创建人脸目录失败', details: err.message });
+            }
         }
 
         const oldPath = req.file.path;
@@ -150,9 +162,15 @@ app.get('/manage', (req, res) => {
     res.sendFile(path.join(__dirname, 'manage.html'));
 });
 
+// 错误处理中间件
+app.use((err, req, res, next) => {
+    console.error('服务器错误:', err);
+    res.status(500).json({ error: '服务器内部错误', details: err.message });
+});
+
 const PORT = 8668;
 const server = app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`服务器运行在 http://localhost:${PORT}`);
 });
 
 // 添加这个函数来确保服务器可以正确关闭
@@ -170,4 +188,7 @@ function shutdownServer() {
     });
 }
 
-module.exports = { server, shutdownServer };
+module.exports = function(userDataPath) {
+    app.set('userDataPath', userDataPath);
+    return { app, server: null };
+};

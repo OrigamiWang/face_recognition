@@ -1,12 +1,13 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const url = require('url');
-const { server, shutdownServer } = require('./server.js');
+const serverModule = require('./server.js');
 const fs = require('fs');
 const { shell } = require('electron');
 
 let mainWindow;
 let forceQuit = false;
+let server;
 
 const logPath = path.join(app.getPath('userData'), 'logs.txt');
 
@@ -26,6 +27,28 @@ console.error = function() {
 
 process.on('uncaughtException', (error) => {
     fs.appendFileSync(logPath, `${new Date().toISOString()} - UNCAUGHT EXCEPTION: ${error.stack}\n`);
+});
+
+// 在应用准备就绪时创建必要的目录
+app.on('ready', () => {
+    const userDataPath = app.getPath('userData');
+    const uploadsPath = path.join(userDataPath, 'uploads');
+    const facesPath = path.join(userDataPath, 'faces');
+
+    [uploadsPath, facesPath].forEach(dir => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    });
+
+    // 初始化服务器
+    const { app: serverApp } = serverModule(userDataPath);
+    server = serverApp.listen(8668, () => {
+        console.log('服务器运行在 http://localhost:8668');
+    });
+
+    // 创建主窗口
+    createWindow();
 });
 
 function createWindow() {
@@ -68,8 +91,6 @@ function createWindow() {
     });
 }
 
-app.on('ready', createWindow);
-
 app.on('window-all-closed', function () {
     forceQuit = true;
     app.quit();
@@ -95,7 +116,9 @@ async function cleanShutdown() {
             mainWindow.hide();
             mainWindow.destroy();
         }
-        await shutdownServer();
+        if (server) {
+            await new Promise((resolve) => server.close(resolve));
+        }
         console.log('Server closed');
     } catch (error) {
         console.error('Error shutting down server:', error);
