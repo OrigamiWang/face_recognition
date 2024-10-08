@@ -49,19 +49,37 @@ app.get('/api/background', (req, res) => {
 });
 
 // 添加人脸
-app.post('/api/faces', upload.single('file'), async (req, res) => {
+app.post('/api/faces', upload.single('file'), (req, res) => {
     if (!req.file) {
+        console.error('No file uploaded');
         return res.status(400).json({ error: 'No file uploaded' });
     }
     try {
-        const image = await Jimp.read(req.file.path);
-        const newPath = path.join(__dirname, 'faces', `${req.body.name}${path.extname(req.file.originalname)}`);
-        await image.writeAsync(newPath);
-        fs.unlinkSync(req.file.path);
+        const facesDir = path.join(__dirname, 'faces');
+        
+        console.log(`Faces directory: ${facesDir}`);
+        
+        // 确保 faces 目录存在
+        if (!fs.existsSync(facesDir)) {
+            console.log('Creating faces directory');
+            fs.mkdirSync(facesDir, { recursive: true });
+        }
+
+        const oldPath = req.file.path;
+        const newFileName = `${req.body.name}${path.extname(req.file.originalname)}`;
+        const newPath = path.join(facesDir, newFileName);
+
+        console.log(`Old path: ${oldPath}`);
+        console.log(`New path: ${newPath}`);
+
+        // 使用同步操作移动文件
+        fs.renameSync(oldPath, newPath);
+
+        console.log(`File successfully moved to: ${newPath}`);
         res.json({ message: 'Face added successfully' });
     } catch (error) {
-        console.error('Error processing image:', error);
-        res.status(500).json({ error: 'Error processing image' });
+        console.error('Error adding face:', error);
+        res.status(500).json({ error: 'Error adding face', details: error.message, stack: error.stack });
     }
 });
 
@@ -110,4 +128,19 @@ const server = app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
 
-module.exports = server;
+// 添加这个函数来确保服务器可以正确关闭
+function shutdownServer() {
+    return new Promise((resolve, reject) => {
+        server.close((err) => {
+            if (err) {
+                console.error('Error closing server:', err);
+                reject(err);
+            } else {
+                console.log('Server closed successfully');
+                resolve();
+            }
+        });
+    });
+}
+
+module.exports = { server, shutdownServer };

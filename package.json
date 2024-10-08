@@ -20,13 +20,17 @@
   },
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64"
+    "build": "electron-builder --win --x64",
+    "preinstall": "node preinstall.js"
   },
   "build": {
     "appId": "com.yourcompany.facerecognition",
     "productName": "Face Recognition",
     "files": [
       "**/*",
+      "faces/",
+      "background/",
+      "models/",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/*.d.ts",
@@ -37,13 +41,26 @@
       "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
+      "preinstall.js",
+      "installer.nsh"
     ],
     "directories": {
       "buildResources": "resources"
     },
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Face Recognition",
+      "include": "installer.nsh",
+      "perMachine": true,
+      "allowElevation": true,
+      "runAfterFinish": false
     }
   }
 }
