@@ -5,7 +5,22 @@ const fs = require('fs');
 const Jimp = require('jimp');
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+
+// 配置 multer 以使用自定义存储
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // 提供静态文件
 app.use(express.static(__dirname));
@@ -51,17 +66,17 @@ app.get('/api/background', (req, res) => {
 // 添加人脸
 app.post('/api/faces', upload.single('file'), (req, res) => {
     if (!req.file) {
-        console.error('No file uploaded');
-        return res.status(400).json({ error: 'No file uploaded' });
+        console.error('没有上传文件');
+        return res.status(400).json({ error: '没有上传文件' });
     }
     try {
         const facesDir = path.join(__dirname, 'faces');
         
-        console.log(`Faces directory: ${facesDir}`);
+        console.log(`人脸目录: ${facesDir}`);
         
         // 确保 faces 目录存在
         if (!fs.existsSync(facesDir)) {
-            console.log('Creating faces directory');
+            console.log('创建人脸目录');
             fs.mkdirSync(facesDir, { recursive: true });
         }
 
@@ -69,17 +84,29 @@ app.post('/api/faces', upload.single('file'), (req, res) => {
         const newFileName = `${req.body.name}${path.extname(req.file.originalname)}`;
         const newPath = path.join(facesDir, newFileName);
 
-        console.log(`Old path: ${oldPath}`);
-        console.log(`New path: ${newPath}`);
+        console.log(`旧路径: ${oldPath}`);
+        console.log(`新路径: ${newPath}`);
 
-        // 使用同步操作移动文件
-        fs.renameSync(oldPath, newPath);
-
-        console.log(`File successfully moved to: ${newPath}`);
-        res.json({ message: 'Face added successfully' });
+        // 使用 fs.copyFile 代替 fs.renameSync
+        fs.copyFile(oldPath, newPath, (err) => {
+            if (err) {
+                console.error('复制文件时出错:', err);
+                return res.status(500).json({ error: '添加人脸失败', details: err.message });
+            }
+            
+            // 复制成功后删除原文件
+            fs.unlink(oldPath, (unlinkErr) => {
+                if (unlinkErr) {
+                    console.error('删除原文件时出错:', unlinkErr);
+                }
+                
+                console.log(`文件成功移动到: ${newPath}`);
+                res.json({ message: '人脸添加成功' });
+            });
+        });
     } catch (error) {
-        console.error('Error adding face:', error);
-        res.status(500).json({ error: 'Error adding face', details: error.message, stack: error.stack });
+        console.error('添加人脸时出错:', error);
+        res.status(500).json({ error: '添加人脸失败', details: error.message, stack: error.stack });
     }
 });
 

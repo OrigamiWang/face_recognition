@@ -48,13 +48,14 @@ document.getElementById('add-face-form').addEventListener('submit', async (e) =>
             body: formData
         });
         if (!response.ok) {
-            throw new Error('服务器响应错误');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '服务器响应错误');
         }
         alert('人脸添加成功！');
         loadFaces();
     } catch (error) {
         console.error('添加人脸失败:', error);
-        alert('添加人脸失败，请重试或联系管理员。');
+        alert(`添加人脸失败: ${error.message}。请重试或联系管理员。`);
     }
 });
 
