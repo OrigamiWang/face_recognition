@@ -40,19 +40,44 @@ async function loadBackground() {
 document.getElementById('add-face-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('file', document.getElementById('face-file').files[0]);
-    formData.append('name', document.getElementById('face-name').value);
+    const fileInput = document.getElementById('face-file');
+    const nameInput = document.getElementById('face-name');
+    
+    if (!fileInput.files[0]) {
+        alert('请选择一个文件');
+        return;
+    }
+    
+    formData.append('file', fileInput.files[0]);
+    formData.append('name', nameInput.value);
+    
     try {
         const response = await fetch('/api/faces', {
             method: 'POST',
             body: formData
         });
+        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || '服务器响应错误');
         }
+        
+        const result = await response.json();
         alert('人脸添加成功！');
-        loadFaces();
+        
+        // 直接更新界面，而不是重新加载
+        const container = document.getElementById('faces-container');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><img src="${result.url}" alt="${result.name}" width="50" class="rounded"></td>
+            <td>${result.name}</td>
+            <td><button onclick="deleteFace('${result.name}')" class="btn btn-danger btn-sm">删除</button></td>
+        `;
+        container.appendChild(tr);
+        
+        // 清空表单
+        fileInput.value = '';
+        nameInput.value = '';
     } catch (error) {
         console.error('添加人脸失败:', error);
         alert(`添加人脸失败: ${error.message}。请重试或联系管理员。`);

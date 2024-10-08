@@ -113,7 +113,7 @@ app.post('/api/faces', upload.single('file'), (req, res) => {
                 }
                 
                 console.log(`文件成功移动到: ${newPath}`);
-                res.json({ message: '人脸添加成功' });
+                res.json({ message: '人脸添加成功', name: req.body.name, url: `/faces/${newFileName}` });
             });
         });
     } catch (error) {
