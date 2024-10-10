@@ -88,20 +88,33 @@ document.getElementById('add-face-form').addEventListener('submit', async (e) =>
 document.getElementById('update-background-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('file', document.getElementById('background-file').files[0]);
+    const fileInput = document.getElementById('background-file');
+    
+    if (!fileInput.files[0]) {
+        alert('请选择一个文件');
+        return;
+    }
+    
+    formData.append('file', fileInput.files[0]);
     try {
         const response = await fetch('/api/background', {
             method: 'POST',
             body: formData
         });
         if (!response.ok) {
-            throw new Error('服务器响应错误');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '服务器响应错误');
         }
+        const result = await response.json();
         alert('背景图片更新成功！');
-        loadBackground();
+        document.getElementById('background-container').innerHTML = `
+            <img src="${result.url}?t=${new Date().getTime()}" alt="背景图片" class="img-fluid rounded">
+            <p class="mt-2">当前背景图片</p>
+        `;
+        fileInput.value = ''; // 清空文件输入
     } catch (error) {
         console.error('更新背景图片失败:', error);
-        alert('更新背景图片失败，请重试或联系管理员。');
+        alert(`更新背景图片失败: ${error.message}。请重试或联系管理员。`);
     }
 });
 
@@ -110,13 +123,14 @@ async function deleteFace(name) {
     try {
         const response = await fetch(`/api/faces/${name}`, { method: 'DELETE' });
         if (!response.ok) {
-            throw new Error('服务器响应错误');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '服务器响应错误');
         }
         alert('人脸删除成功！');
         loadFaces();
     } catch (error) {
         console.error('删除人脸失败:', error);
-        alert('删除人脸失败，请重试或联系管理员。');
+        alert(`删除人脸失败: ${error.message}。请重试或联系管理员。`);
     }
 }
 

@@ -126,7 +126,10 @@ async function getReferenceDescriptors() {
             }
             
             if (detection) {
-                descriptors.push(detection.descriptor);
+                descriptors.push({
+                    name: REFERENCE_NAMES[i],
+                    descriptor: detection.descriptor
+                });
             } else {
                 console.warn(`No face detected in image: ${REFERENCE_IMAGES[i]}`);
             }
@@ -208,20 +211,17 @@ async function script() {
 
         // 遍历每个人脸，找到最匹配的参考人脸，并获取其名字和距离
         const results = detections.map(fd => {
-            let minDistance = Infinity;
-            let minIndex = -1;
-            referenceDescriptors.forEach((fr, j) => {
-                const distance = faceapi.euclideanDistance(fd.descriptor, fr);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    minIndex = j;
+            let bestMatch = { name: "未知", distance: Infinity };
+            referenceDescriptors.forEach((refFace) => {
+                const distance = faceapi.euclideanDistance(fd.descriptor, refFace.descriptor);
+                if (distance < bestMatch.distance) {
+                    bestMatch = { name: refFace.name, distance: distance };
                 }
             });
             return {
-                name: REFERENCE_NAMES[minIndex],
-                distance: minDistance,
+                name: bestMatch.name,
+                distance: bestMatch.distance,
                 box: fd.detection.box,
-                // 加入���数，为了区分人脸和名字
                 score: fd.detection.score
             };
         });
@@ -238,12 +238,8 @@ async function script() {
         // 修改边距
         document.getElementById('word').style.textAlign = "center"
 
-        // 改成自己画框，可以实现去掉默认画框上的置信度，但是会有一个问题，无法匹配画框与人的名字
-        // 我们发现，results中存有名字，而results和detections的score在某种程度上是一一对应的关系
-        // 因此我么可以通过判断score是否相等，来区分画框与人的名字
-        // 我们发现，results中存有名字，而results和detections的score在某种程度上是一一对应的关系
-        // 因此我么可以通过判断score是否相等，来区分画框与人的名字
-        resizedDetections.forEach(detection => {
+        // 修改绘制逻辑
+        resizedDetections.forEach((detection, index) => {
             const box = detection.detection.box;
             context.beginPath();
             context.rect(box.x, box.y, box.width, box.height);
@@ -251,25 +247,15 @@ async function script() {
             context.stroke();
             context.font = "40px Arial";
             context.fillStyle = "blue";
-            results.forEach(result => {
-                if (result.distance < 0.35 && detection.detection.score === result.score) {
-                    context.fillText(result.name,
-                        (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
-                }
-            });
+            const result = results[index];
+            if (result.distance < 0.6) { // 可以调整这个阈值
+                context.fillText(result.name,
+                    (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
+            } else {
+                context.fillText("未知",
+                    (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
+            }
         });
-
-
-        // results.forEach(result => {
-        //     context.strokeStyle = "red";
-        //     context.lineWidth = 2;
-        //     context.fillStyle = "blue";
-        //     context.font = "40px Arial";
-        //     if (result.distance < 0.45) {
-        //         context.fillText(result.name,
-        //             (result.box.x + 5) * video.width / 640, (result.box.y) * video.height / 480);
-        //     }
-        // });
     }, 100);
 }
 
